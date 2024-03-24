@@ -1,26 +1,44 @@
-def calcRedundantBits(m):
-    r = 0
-    while 2 ** r < m + r + 1:
-        r += 1
-    return r
-
-def calcParityBits(arr, r, matrix_h):
-    for i in range(r):
-        val = 0
-        for j in range(len(arr)):
-            if j & (2 ** i) == (2 ** i):
-                val ^= int(arr[j])
-        arr.append(val)
-
-def detectError(arr, matrix_h):
+def detectSingleError(arr, matrix_h):
     n = len(arr)
-    res = 0
+    res = [0] * len(matrix_h)
     for i in range(len(matrix_h)):
         val = 0
         for j in range(n):
             val ^= matrix_h[i][j] * arr[j]
-        res += val * (10 ** i)
-    return int(str(res), 2)
+        res[i] = val
+
+    for i in range(len(matrix_h)):
+        if res[i] == 1:
+            # Korekcja pojedynczego błędu bitowego.
+            for j in range(n):
+                arr[j] ^= matrix_h[i][j]
+            return True
+    return False
+
+
+def detectDoubleError(arr, matrix_h):
+    n = len(arr)
+    res = [0] * n
+    for i in range(len(matrix_h)):
+        val = 0
+        for j in range(n):
+            val ^= matrix_h[i][j] * arr[j]
+        res[i] = val
+
+    for i in range(len(matrix_h)):
+        for j in range(i + 1, len(matrix_h)):
+            is_error = True
+            for k in range(n):
+                if matrix_h[i][k] != matrix_h[j][k] != res[k]:
+                    is_error = False
+                    break
+            if is_error:
+                # Korekcja podwójnego błędu bitowego.
+                for k in range(n):
+                    arr[k] ^= matrix_h[i][k]
+                return True
+    return False
+
 
 # Zadeklarowana macierz kontrolna
 matrix_h = [
@@ -34,25 +52,17 @@ matrix_h = [
     [1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1]
 ]
 
-# Dane do transmisji
-data = '1011001'
-
-# Obliczenie liczby nadmiarowych bitów
-m = len(data)
-r = calcRedundantBits(m)
-
-# Określenie bitów parzystości
-calcParityBits(list(map(int, data)), r, matrix_h)
-
-# Dane do transmisji
-print("Dane do transmisji:", ''.join(map(str, data)))
-
 # Symulacja błędu w transmisji przez zmianę wartości bitu.
 # 10101001110 -> 11101001110, błąd na 10. pozycji.
-data = list(map(int, '11101001110'))
-print("Dane z błędem:", ''.join(map(str, data)))
-correction = detectError(data, matrix_h)
-if correction == 0:
-    print("Brak błędu w przesłanej wiadomości.")
+error_data = list(map(int, '11001001110'))
+print("Dane z błędem:", ''.join(map(str, error_data)))
+
+# Korekcja podwójnego błędu bitowego
+if detectDoubleError(error_data, matrix_h):
+    print("Znaleziono i skorygowano podwójny błąd bitowy.")
 else:
-    print("Pozycja błędu:", len(data) - correction + 1, "od lewej")
+    # Korekcja pojedynczego błędu bitowego
+    if detectSingleError(error_data, matrix_h):
+        print("Znaleziono i skorygowano pojedynczy błąd bitowy.")
+    else:
+        print("Nie udało się skorygować błędów.")
