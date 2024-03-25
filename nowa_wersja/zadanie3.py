@@ -1,95 +1,67 @@
-H_ROWS = 4
-H_COLUMNS = 12
-
 H = [[1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0],
      [1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0],
      [1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0],
      [0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1]]
 
-def parse(s):
-    return [int(ch) for ch in s]
+def txt_to_int(text):
+    return [int(char) for char in text]
 
-def count_cbit(message, row):
-    return sum(message[i] * H[row][i] for i in range(len(message))) % 2
+def get_c(msg, r):
+    return sum(H[r][j] * msg[j] for j in range(len(msg))) % 2
 
-def flip(bit):
+def encoding(msg):
+    if not msg:
+        return []
+    encoded_msg = msg[:]
+    for r in range(len(H)):
+        C = get_c(msg, r)
+        encoded_msg.append(C)
+    return encoded_msg
+
+def flip_bit(bit):
     return 1 if bit == 0 else 0
 
-def correct(message, error):
-    for column in range(H_COLUMNS):
-        err_check = all(error[row] == H[row][column] for row in range(H_ROWS))
-        if err_check:
-            message[column] = flip(message[column])
+def correct(msg, error):
+    for k in range(len(H[0])):
+        error_check = True
+        for r in range(len(H)):
+            if error[r] != H[r][k]:
+                error_check = False
+                break
+        if error_check:
+            msg[k] = flip_bit(msg[k])
             break
 
-def check_message(message):
-    if len(message) != H_COLUMNS:
-        print("WRONG")
+def check(msg):
+    if len(msg) != len(H[0]):
+        print("Liczba bitów nie jest równa")
         return
 
-    verification = True
-    err = []
-
-    for i in range(H_ROWS):
-        row_sum = count_cbit(message, i)
-        err.append(row_sum)
-        if row_sum == 1:
-            verification = False
-
-    if not verification:
-        correct(message, err)
-
-def encode(message):
-    for row in range(H_ROWS):
-        cbit = count_cbit(message, row)
-        message.append(cbit)
-
-def decode(message):
-    check_message(message)
-    for i in range(H_ROWS):
-        message.pop()
+    errors = [get_c(msg, i) for i in range(len(H))]
+    if any(error != 0 for error in errors):
+        correct(msg, errors)
 
 def main():
-    wybor = int(input("Kodowanie: 1\nDekodowanie: 2\n"))
+    print("Wybierz 1 aby zakodować, wybierz 2 żeby zdekodować.")
+    wybor = int(input())
+    if wybor == 1:
+        # kodowanie
+        with open("wiadomosc.txt", "r") as wejscie, open("zakodowane.txt", "w") as wyjscie:
+            for line in wejscie:
+                if len(line.strip()) == 8:
+                    wiadomosc = txt_to_int(line.strip())
+                    wiadomosc_encoded = encoding(wiadomosc)
+                    wyjscie.write(''.join(map(str, wiadomosc_encoded)) + '\n')
+    elif wybor == 2:
+        # dekodowanie
+        with open("zakodowane.txt", "r") as wejscie, open("wiadomosc.txt", "w") as wyjscie:
+            for line in wejscie:
+                if len(line.strip()) == 12:
+                    wiadomosc = txt_to_int(line.strip())
+                    check(wiadomosc)
+                    wyjscie.write(''.join(map(str, wiadomosc[:8])) + '\n')
+    else:
+        print("Nie wybrałeś 1 ani 2")
 
-    if wybor == '1':
-        with open("wiad.txt", "r") as input_file, open("zakodowane.txt", "w") as encoded_file:
-            message_text = ""
-            counter = 0
-
-            for line in input_file:
-                for ch in line.strip():
-                    message_text += ch
-                    counter += 1
-
-                    if counter == 8:
-                        message = parse(message_text)
-                        encode(message)
-                        encoded_file.write("".join(map(str, message)) + "\n")
-                        message_text = ""
-                        counter = 0
-
-            if counter != 0:
-                message_text += "0" * (8 - counter)
-                message = parse(message_text)
-                encode(message)
-                encoded_file.write("".join(map(str, message)) + "\n")
-
-    elif wybor == '2':
-        with open("zakodowane.txt", "r") as encoded_file, open("wiad1.txt", "w") as decoded_file:
-            message_text = ""
-            counter = 0
-
-            for line in encoded_file:
-                for ch in line.strip():
-                    message_text += ch
-                    counter += 1
-
-                    if counter == 12:
-                        message = parse(message_text)
-                        decode(message)
-                        decoded_file.write("".join(map(str, message)) + "\n")
-                        message_text = ""
-                        counter = 0
-
-main()
+if __name__ == "__main__":
+    main()
